@@ -6,28 +6,32 @@ module.exports = class Task {
     return [];
   }
 
-  static name() {
-    return null;
-  }
-
   constructor(manager) {
     this._manager = manager;
+  }
+
+  path(name) {
+    return this.getPath(this.constructor.name, name);
   }
 
   getPath(task, name) {
     return this._manager.getPath(task, name);
   }
 
-  register() {
+  register(gulp) {
+    const that = this;
 
+    gulp.task(this.constructor.name, this.dependencies(), function () {
+      return that.execute(that._manager.gulp());
+    });
   }
 
   dependencies() {
     return [];
   }
 
-  execute() {
-    return null;
+  execute(gulp) {
+    return gulp;
   }
 
 }

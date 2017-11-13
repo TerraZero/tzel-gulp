@@ -20,6 +20,7 @@ module.exports = class GulpManager {
         datas: Path.create(boot.mod('gulp').path('datas')),
         gulp: Path.create('gulp'),
         tasks: Path.create('gulp/tasks'),
+        config: Path.create('gulp/config.json'),
       };
     }
     return this._paths;
