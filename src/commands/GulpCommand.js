@@ -90,32 +90,114 @@ module.exports = class GulpCommand extends Command.class {
     const paths = this._gulp.getPaths();
     const onlyTask = argv.task || null;
     const overwrite = argv.overwrite;
+    const mods = boot.getMods();
+    const isTaskChange = function (task) {
+      return (onlyTask === null || onlyTask == task) && (config.tasks[task] === undefined || overwrite);
+    };
 
     this.io().fsMkDirs(paths.gulp);
 
     let config = {};
     const tasks = paths.tasks.glob('*.task.js');
 
-    if (this.io().fsExists(paths.config)) {
-      config = require(paths.config.norm());
+    this.io().h2('Include tasks');
+    for (const index in tasks) {
+      tasks[index] = require(tasks[index].norm());
     }
 
-    this.io().h2('Genrate file infos');
-    config.tasks = [];
+    if (this.io().fsExists(paths.config)) {
+      this.io().h2('Load current config file "' + paths.config.path() + '"');
+      config = require(paths.config.norm());
+    }
+    config.tasks = config.tasks || {};
+
+    this.io().h2('Add file infos');
     config.files = config.files || {};
     for (const index in tasks) {
-      const task = require(tasks[index].norm());
+      const task = tasks[index];
 
-      config.tasks.push(task.name);
-      if ((onlyTask === null || onlyTask == task.name) && (config.files[task.name] === undefined || overwrite)) {
+      if (isTaskChange(task.name)) {
         this.io().out('Update path infos for task "' + task.name + '"');
-        config.files[task.name] = task.paths();
-        log(task.paths());
+        const taskPaths = task.paths();
+        const taskConfigPaths = {};
+
+        taskPaths.paths = taskPaths.paths || {};
+        for (const i in taskPaths.paths) {
+          taskConfigPaths[i] = taskPaths.paths[i];
+        }
+
+        taskPaths.src = taskPaths.src || {};
+        for (const i in taskPaths.src) {
+          const unique = {};
+          const src = taskPaths.src[i];
+
+          switch (src.type) {
+            case 'dynamic':
+              for (const b in src.base) {
+                for (const mod in mods) {
+                  if (!mods[mod].hasPath(src.base[b])) continue;
+                  const p = Path.create(src.selector, mods[mod].key() + ':' + src.base[b]);
+
+                  unique[p.norm()] = p.norm();
+                }
+              }
+              taskConfigPaths[i] = this._toArray(unique);
+              break;
+            case 'static':
+              taskConfigPaths[i] = Path.create([boot.setting(src.setting), src.path || '']).norm();
+              break;
+          }
+        }
+        config.files[task.name] = taskConfigPaths;
       }
     }
 
-    log(config.files.pug);
+    this.io().h2('Add plugin infos');
+    config.plugins = config.plugins || {};
+    for (const index in tasks) {
+      const task = tasks[index];
+
+      if (isTaskChange(task.name)) {
+        this.io().out('Update plugin infos for task "' + task.name + '"');
+        config.plugins[task.name] = task.plugins();
+      }
+    }
+
+    this.io().h2('Add data infos');
+    config.datas = config.datas || {};
+    for (const index in tasks) {
+      const task = tasks[index];
+
+      if (isTaskChange(task.name) && task.datas() !== null) {
+        this.io().out('Update data infos for task "' + task.name + '"');
+        config.datas[task.name] = task.datas();
+      }
+    }
+
+    this.io().h2('Alter the configs');
+    this._events.fire('gulp', 'config.alter', {
+      command: this,
+      config: config,
+      argv: argv,
+      tasks: tasks,
+      isTaskChange: isTaskChange,
+    });
+
+    this.io().h2('Add task infos');
+    for (const index in tasks) {
+      config.tasks[tasks[index].name] = tasks[index].name;
+    }
+
     this.io().fsWriteJSON(paths.config, config);
+  }
+
+  _toArray(object) {
+    const array = [];
+
+    for (const index in object) {
+      array.push(object[index]);
+    }
+    return array;
   }
 
 }

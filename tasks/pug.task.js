@@ -4,16 +4,95 @@ const Task = require('./Task');
 
 module.exports = class pug extends Task {
 
-  static paths() {
+  static plugins() {
     return {
-      'files': 'src/pug/**/*.pug',
-      'dest': 'build/html',
+      rename: 'gulp-rename',
+      pug: 'gulp-pug',
+      insert: 'gulp-insert',
     };
   }
 
-  execute(gulp) {
+  static watch() {
+    return 'files';
+  }
+
+  static paths() {
+    return {
+      src: {
+        files: {
+          type: 'dynamic',
+          selector: '**/*.pug',
+          base: ['pug', 'templates'],
+        },
+        compile: {
+          type: 'static',
+          setting: 'path.tmp',
+          path: 'compile',
+        },
+        src: {
+          type: 'static',
+          setting: 'path.tmp',
+          path: 'compile/*.tpl.pug',
+        },
+        dest: {
+          type: 'static',
+          setting: 'path.tpls',
+        }
+      },
+    };
+  }
+
+  static subtasks() {
+    return [
+      {
+        name: 'copy',
+        func: 'copy',
+      },
+      {
+        name: 'compile',
+        func: 'compile',
+        depent: ['pug:copy'],
+      }
+    ];
+  }
+
+  static datas() {
+    return {
+      includes: [],
+    };
+  }
+
+  copy(gulp) {
+    const rename = this.plugin('rename');
+
     return gulp.src(this.path('files'))
+      .pipe(rename(function (path) {
+        const p = path.dirname.split('/');
+
+        p.push(path.basename);
+        path.basename = p.join('.');
+        path.dirname = '';
+      }))
+      .pipe(gulp.dest(this.path('compile')));
+  }
+
+  compile(gulp) {
+    const pug = this.plugin('pug');
+    const insert = this.plugin('insert');
+
+    return gulp.src(this.path('src'))
+      .pipe(insert.prepend(this._getIncludes()))
+      .pipe(pug({
+        client: true,
+      }))
+      .pipe(insert.append('\nmodule.exports = template;\n'))
       .pipe(gulp.dest(this.path('dest')));
+  }
+
+  _getIncludes() {
+    const includes = this.data('includes');
+
+    return 'include ' + includes.join('\ninclude ') + '\n';
   }
 
 }

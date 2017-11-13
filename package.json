@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/TerraZero/tzel-gulp#readme",
   "devDependencies": {
-    "glob": "^7.1.2"
+    "glob": "^7.1.2",
+    "gulp-rename": "^1.2.2"
   }
 }
