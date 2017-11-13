@@ -70,8 +70,17 @@ module.exports = class Task {
       gulp.task(this.constructor.name, names);
     }
 
-    if (this.constructor.watch()) {
-      this._manager.addWatcher(this.constructor.name, this.path(this.constructor.watch()));
+    let watcher = this.constructor.watch();
+
+    if (watcher) {
+      if (Array.isArray(watcher)) {
+        for (const index in watcher) {
+          watcher[index] = this.path(watcher[index]);
+        }
+      } else {
+        watcher = this.path(watcher);
+      }
+      this._manager.addWatcher(this.constructor.name, watcher);
     }
   }
 

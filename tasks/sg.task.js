@@ -14,7 +14,7 @@ module.exports = class sg extends Task {
   }
 
   static watch() {
-    return 'files';
+    return ['tplWatch', 'files'];
   }
 
   static paths() {
@@ -23,6 +23,11 @@ module.exports = class sg extends Task {
         files: {
           type: 'dynamic',
           selector: '**/*.sass',
+          base: ['components'],
+        },
+        tplWatch: {
+          type: 'dynamic',
+          selector: '**/*.pug',
           base: ['components'],
         },
         readme: {
