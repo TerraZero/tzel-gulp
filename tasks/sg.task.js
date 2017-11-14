@@ -42,7 +42,7 @@ module.exports = class sg extends Task {
         },
         sass: {
           type: 'dynamic',
-          selector: '**/*.sass',
+          selector: 'registry.sass',
           base: ['components'],
         },
       },
