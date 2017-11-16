@@ -9,6 +9,8 @@ module.exports = class pug extends Task {
       rename: 'gulp-rename',
       pug: 'gulp-pug',
       insert: 'gulp-insert',
+      con: 'gulp-if',
+      replace: 'gulp-replace',
     };
   }
 
@@ -79,9 +81,22 @@ module.exports = class pug extends Task {
   compile(gulp) {
     const pug = this.plugin('pug');
     const insert = this.plugin('insert');
+    const replace = this.plugin('replace');
+    const con = this.plugin('con');
+    const includes = this._getIncludes();
+
+    let sw = false;
 
     return gulp.src(this.path('src'))
-      .pipe(insert.prepend(this._getIncludes()))
+      .pipe(con(function (file) {
+        sw = file._contents.toString().match(/extends .*/) === null;
+        return sw;
+      }, insert.prepend(includes)))
+      .pipe(con(function (file) {
+        return !sw;
+      }, replace(/extends .*/, function (match, offset, string) {
+        return match + '\n' + includes;
+      })))
       .pipe(pug({
         client: true,
       }))
