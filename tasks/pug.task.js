@@ -69,7 +69,7 @@ module.exports = class pug extends Task {
 
     return gulp.src(this.path('files'))
       .pipe(rename(function (path) {
-        const p = path.dirname.split('/');
+        const p = path.dirname.split(/[\/|\\\\]/);
 
         p.push(path.basename);
         path.basename = p.join('.');
